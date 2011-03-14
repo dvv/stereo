@@ -1,0 +1,13 @@
+{
+  "name"          : "stereo",
+  "description"   : "Simple multi-core node application controller",
+  "url"           : "https://github.com/dvv/stereo/",
+  "keywords"      : ["node", "multi", "multi-node", "cluster", "spark"],
+  "author"        : "Vladimir Dronnikov <dronnikov@gmail.com>",
+  "contributors"  : [],
+  "dependencies"  : {},
+  "lib"           : ".",
+  "main"          : "index.js",
+  "scripts"       : {"install": "coffee -bc index.coffee"},
+  "version"       : "0.0.1"
+}
