@@ -31,7 +31,7 @@ framing = (chunk) ->
 
 	node cluster factory, takes options:
 
-options.host				- host to bind server to	= *
+options.host				- host to bind server to	= '0.0.0.0'
 options.port				- port to bind server to	= 80
 options.connections	- listener capacity				= 1024
 
@@ -75,6 +75,7 @@ module.exports = (options = {}) ->
 
 	# options
 	options.port ?= 80
+	options.host ?= '0.0.0.0'
 	nworkers = options.workers or require('os').cpus().length
 	options.ipc ?= '.ipc'
 
@@ -215,7 +216,7 @@ module.exports = (options = {}) ->
 		#
 		netBinding = process.binding 'net'
 		socket = netBinding.socket 'tcp' + (if netBinding.isIP(options.host) is 6 then 6 else 4)
-		netBinding.bind socket, options.port
+		netBinding.bind socket, options.port, options.host
 		netBinding.listen socket, options.connections or 1024
 
 		#
