@@ -73,7 +73,7 @@ module.exports = function(options) {
   }
   net = require('net');
   fs = require('fs');
-  (_ref = options.port) != null ? _ref : options.port = 80;
+  (_ref = options.port) != null ? _ref : options.port = 3000;
   nworkers = options.workers || require('os').cpus().length;
   (_ref2 = options.ipc) != null ? _ref2 : options.ipc = '.ipc';
   if (process.env._NODE_WORKER_FOR_) {

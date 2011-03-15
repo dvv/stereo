@@ -74,7 +74,7 @@ module.exports = (options = {}) ->
 	fs = require 'fs'
 
 	# options
-	options.port ?= 80
+	options.port ?= 3000
 	nworkers = options.workers or require('os').cpus().length
 	options.ipc ?= '.ipc'
 
