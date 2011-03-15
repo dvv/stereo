@@ -31,7 +31,7 @@ framing = (chunk) ->
 
 	node cluster factory, takes options:
 
-options.host				- host to bind server to	= *
+options.host				- host to bind server to	= '0.0.0.0'
 options.port				- port to bind server to	= 80
 options.connections	- listener capacity				= 1024
 
@@ -68,13 +68,14 @@ options.ssl.cert
 options.ssl.caCerts
 
 ###
-module.exports = (options = {}) ->
+module.exports = (server, options = {}) ->
 
 	net = require 'net'
 	fs = require 'fs'
 
 	# options
 	options.port ?= 3000
+	options.host ?= '0.0.0.0'
 	nworkers = options.workers or require('os').cpus().length
 	options.ipc ?= '.ipc'
 
@@ -95,18 +96,17 @@ module.exports = (options = {}) ->
 
 		#
 		# setup HTTP(S) server
-		#
-		if options.ssl
-			credentials =
-				key: fs.readFileSync options.ssl.key, 'utf8'
-				cert: fs.readFileSync options.ssl.cert, 'utf8'
-				#ca: options.ssl.caCerts.map (fname) -> fs.readFileSync fname, 'utf8'
-			server = require('https').createServer credentials
-		else
-			server = require('http').createServer()
-		#
 		# N.B. request handler to be attached elsewhere
 		#
+		unless server
+			if options.ssl
+				credentials =
+					key: fs.readFileSync options.ssl.key, 'utf8'
+					cert: fs.readFileSync options.ssl.cert, 'utf8'
+					#ca: options.ssl.caCerts.map (fname) -> fs.readFileSync fname, 'utf8'
+				server = require('https').createServer credentials
+			else
+				server = require('http').createServer()
 
 		#
 		# setup signals
@@ -215,7 +215,7 @@ module.exports = (options = {}) ->
 		#
 		netBinding = process.binding 'net'
 		socket = netBinding.socket 'tcp' + (if netBinding.isIP(options.host) is 6 then 6 else 4)
-		netBinding.bind socket, options.port
+		netBinding.bind socket, options.port, options.host
 		netBinding.listen socket, options.connections or 1024
 
 		#

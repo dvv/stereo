@@ -8,7 +8,7 @@
 
 server.js:
 
-    var server = require('stereo')({
+    var server = require('stereo')(null, {
       port: 3000,
       repl: true,
       workers: 4
@@ -20,7 +20,7 @@ server.js:
       process.on('message', function(message){...});
     } else { // master process
       // broadcast a message
-      process.publish({sos: 'to all, all, all'});
+      setTimeout(function(){process.publish({sos: 'to all, all, all'});}, 2000);
     }
 
 ## Authors

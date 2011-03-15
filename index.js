@@ -29,7 +29,7 @@ framing = function(chunk) {
 
 	node cluster factory, takes options:
 
-options.host				- host to bind server to	= *
+options.host				- host to bind server to	= '0.0.0.0'
 options.port				- port to bind server to	= 80
 options.connections	- listener capacity				= 1024
 
@@ -66,16 +66,17 @@ options.ssl.cert
 options.ssl.caCerts
 
 */
-module.exports = function(options) {
-  var REPL, args, cmd, comm, credentials, env, fs, ipc, k, net, netBinding, nworkers, server, socket, spawnWorker, v, watch, workers, _ref, _ref2, _ref3, _ref4;
+module.exports = function(server, options) {
+  var REPL, args, cmd, comm, credentials, env, fs, ipc, k, net, netBinding, nworkers, socket, spawnWorker, v, watch, workers, _ref, _ref2, _ref3, _ref4, _ref5;
   if (options == null) {
     options = {};
   }
   net = require('net');
   fs = require('fs');
   (_ref = options.port) != null ? _ref : options.port = 3000;
+  (_ref2 = options.host) != null ? _ref2 : options.host = '0.0.0.0';
   nworkers = options.workers || require('os').cpus().length;
-  (_ref2 = options.ipc) != null ? _ref2 : options.ipc = '.ipc';
+  (_ref3 = options.ipc) != null ? _ref3 : options.ipc = '.ipc';
   if (process.env._NODE_WORKER_FOR_) {
     process.log = function() {
       var args;
@@ -83,14 +84,16 @@ module.exports = function(options) {
       args[0] = ("" + (Date.now()) + " WORKER " + process.pid + ": ") + args[0];
       return console.error.apply(console, args);
     };
-    if (options.ssl) {
-      credentials = {
-        key: fs.readFileSync(options.ssl.key, 'utf8'),
-        cert: fs.readFileSync(options.ssl.cert, 'utf8')
-      };
-      server = require('https').createServer(credentials);
-    } else {
-      server = require('http').createServer();
+    if (!server) {
+      if (options.ssl) {
+        credentials = {
+          key: fs.readFileSync(options.ssl.key, 'utf8'),
+          cert: fs.readFileSync(options.ssl.cert, 'utf8')
+        };
+        server = require('https').createServer(credentials);
+      } else {
+        server = require('http').createServer();
+      }
     }
     if (options.workerShutdownTimeout) {
       process.on('SIGQUIT', function() {
@@ -149,7 +152,7 @@ module.exports = function(options) {
     };
     netBinding = process.binding('net');
     socket = netBinding.socket('tcp' + (netBinding.isIP(options.host) === 6 ? 6 : 4));
-    netBinding.bind(socket, options.port);
+    netBinding.bind(socket, options.port, options.host);
     netBinding.listen(socket, options.connections || 1024);
     if (process.getuid() === 0) {
       if (options.uid) {
@@ -165,16 +168,16 @@ module.exports = function(options) {
     workers = {};
     args = options.args || process.argv;
     env = {};
-    _ref3 = process.env;
-    for (k in _ref3) {
-      if (!__hasProp.call(_ref3, k)) continue;
-      v = _ref3[k];
-      env[k] = v;
-    }
-    _ref4 = options.env || {};
+    _ref4 = process.env;
     for (k in _ref4) {
       if (!__hasProp.call(_ref4, k)) continue;
       v = _ref4[k];
+      env[k] = v;
+    }
+    _ref5 = options.env || {};
+    for (k in _ref5) {
+      if (!__hasProp.call(_ref5, k)) continue;
+      v = _ref5[k];
       env[k] = v;
     }
     spawnWorker = function() {
