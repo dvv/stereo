@@ -68,7 +68,7 @@ options.ssl.cert
 options.ssl.caCerts
 
 ###
-module.exports = (options = {}) ->
+module.exports = (server, options = {}) ->
 
 	net = require 'net'
 	fs = require 'fs'
@@ -96,18 +96,17 @@ module.exports = (options = {}) ->
 
 		#
 		# setup HTTP(S) server
-		#
-		if options.ssl
-			credentials =
-				key: fs.readFileSync options.ssl.key, 'utf8'
-				cert: fs.readFileSync options.ssl.cert, 'utf8'
-				#ca: options.ssl.caCerts.map (fname) -> fs.readFileSync fname, 'utf8'
-			server = require('https').createServer credentials
-		else
-			server = require('http').createServer()
-		#
 		# N.B. request handler to be attached elsewhere
 		#
+		unless server
+			if options.ssl
+				credentials =
+					key: fs.readFileSync options.ssl.key, 'utf8'
+					cert: fs.readFileSync options.ssl.cert, 'utf8'
+					#ca: options.ssl.caCerts.map (fname) -> fs.readFileSync fname, 'utf8'
+				server = require('https').createServer credentials
+			else
+				server = require('http').createServer()
 
 		#
 		# setup signals

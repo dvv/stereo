@@ -1,4 +1,4 @@
-var server = require('./')({
+var server = require('./')(null, {
   port: 3000,
   repl: true,
   workers: 4
@@ -15,5 +15,5 @@ if (server) { // worker process
   });
 } else { // master process
   // broadcast a message
-  process.publish({sos: 'to all, all, all'});
+  setTimeout(function(){process.publish({sos: 'to all, all, all'});}, 2000);
 }

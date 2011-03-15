@@ -66,8 +66,8 @@ options.ssl.cert
 options.ssl.caCerts
 
 */
-module.exports = function(options) {
-  var REPL, args, cmd, comm, credentials, env, fs, ipc, k, net, netBinding, nworkers, server, socket, spawnWorker, v, watch, workers, _ref, _ref2, _ref3, _ref4, _ref5;
+module.exports = function(server, options) {
+  var REPL, args, cmd, comm, credentials, env, fs, ipc, k, net, netBinding, nworkers, socket, spawnWorker, v, watch, workers, _ref, _ref2, _ref3, _ref4, _ref5;
   if (options == null) {
     options = {};
   }
@@ -84,14 +84,16 @@ module.exports = function(options) {
       args[0] = ("" + (Date.now()) + " WORKER " + process.pid + ": ") + args[0];
       return console.error.apply(console, args);
     };
-    if (options.ssl) {
-      credentials = {
-        key: fs.readFileSync(options.ssl.key, 'utf8'),
-        cert: fs.readFileSync(options.ssl.cert, 'utf8')
-      };
-      server = require('https').createServer(credentials);
-    } else {
-      server = require('http').createServer();
+    if (!server) {
+      if (options.ssl) {
+        credentials = {
+          key: fs.readFileSync(options.ssl.key, 'utf8'),
+          cert: fs.readFileSync(options.ssl.cert, 'utf8')
+        };
+        server = require('https').createServer(credentials);
+      } else {
+        server = require('http').createServer();
+      }
     }
     if (options.workerShutdownTimeout) {
       process.on('SIGQUIT', function() {
