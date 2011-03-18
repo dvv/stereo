@@ -135,7 +135,7 @@ module.exports = (server, options = {}) ->
 		# uncaught exceptions cause worker shutdown
 		#
 		process.on 'uncaughtException', (err) ->
-			@log "EXCEPTION: #{err.stack or err.message}"
+			@log "EXCEPTION: #{err.stack or err.message or err}"
 			@exit 1
 
 		#

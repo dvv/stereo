@@ -115,7 +115,7 @@ module.exports = function(server, options) {
       return this.log('shutdown');
     });
     process.on('uncaughtException', function(err) {
-      this.log("EXCEPTION: " + (err.stack || err.message));
+      this.log("EXCEPTION: " + (err.stack || err.message || err));
       return this.exit(1);
     });
     comm = net.createConnection(options.ipc);
