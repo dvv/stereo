@@ -13,19 +13,27 @@
 # takes chunks in buffer. when the buffer contains valid JSON literal
 # reset the buffer and emit 'message' event passing parsed JSON as parameter
 #
-# usage: stream.on('data', framing.bind(stream))
+# usage: stream.on('data', framing.bind(stream, id))
 #
+
+buf = {}
 framing = (chunk) ->
-	buf = buf or ''
-	braces = braces or 0
+	id = @pid
+	buf[id] = '' unless buf[id]
 	for c, i in chunk
-		++braces if '{' is c
-		--braces if '}' is c
-		buf += c
-		if 0 is braces
-			obj = JSON.parse buf
-			buf = ''
+		if '\n' is c
+			#process.log '---'
+			#process.log 'FRAME', buf[id]
+			#process.log '---'
+			obj = JSON.parse buf[id]
+			buf[id] = ''
 			@emit 'message', obj
+		else
+			buf[id] += c
+	return
+
+frame = (obj) ->
+	JSON.stringify(obj) + '\n'
 
 ###
 
@@ -151,14 +159,14 @@ module.exports = (server, options = {}) ->
 			#process.publish 'connect'
 
 		#
-		# wait for complete JSON message to come, parse it and emit 'message' event
+		# wait for complete JSON message to come, parse it and emit process' 'message' event
 		#
-		comm.on 'data', framing.bind comm
+		comm.on 'data', framing.bind process
 
 		#
 		# relay received messages to the process 'message' handler
 		#
-		comm.on 'message', (message) -> process.emit 'message', message
+		#comm.on 'message', (message) -> process.emit 'message', message
 
 		#
 		# master socket descriptor has arrived
@@ -183,7 +191,7 @@ module.exports = (server, options = {}) ->
 				from: @pid
 				channel: channel
 				data: message
-			comm.write JSON.stringify data
+			comm.write frame data
 
 		#
 		# keep-alive?
@@ -251,7 +259,7 @@ module.exports = (server, options = {}) ->
 		# define broadcast message publisher
 		#
 		process.publish = (channel, message) ->
-			data = JSON.stringify
+			data = frame
 				from: null # master
 				channel: channel
 				data: message
@@ -271,30 +279,12 @@ module.exports = (server, options = {}) ->
 			#
 			# worker has born -> pass it configuration and the master socket to listen to
 			#
-			stream.write '{"foo": "bar"}', 'utf8', socket
+			stream.write '{"foo": "bar"}\n', 'utf8', socket
 
 			#
-			# relay raw data to all known workers
+			# wait for complete JSON object to come, parse it and emit process' 'message' event
 			#
-			#stream.on 'data', (data) -> worker.write data for pid, worker of workers
-
-			#
-			# wait for complete JSON object to come, parse it and emit 'message' event
-			#
-			stream.on 'data', framing.bind stream
-
-			#
-			# message from a worker
-			#
-			stream.on 'message', (data) ->
-				# register new worker
-				if data.channel is 'bcast'
-					data = JSON.stringify data
-					worker.write data for pid, worker of workers
-				else if data.channel is 'register'
-					workers[data.from] = stream
-					process.log "WORKER #{data.from} started and listening to *:#{options.port}"
-				return
+			stream.on 'data', framing.bind process
 
 			#
 			# worker has gone
@@ -306,6 +296,19 @@ module.exports = (server, options = {}) ->
 						delete workers[pid]
 				# start new worker
 				spawnWorker() if nworkers > Object.keys(workers).length
+				return
+
+			#
+			# message from a worker
+			#
+			process.on 'message', (data) ->
+				# register new worker
+				if data.channel is 'bcast'
+					data = frame data
+					worker.write data for pid, worker of workers
+				else if data.channel is 'register'
+					workers[data.from] = stream
+					process.log "WORKER #{data.from} started and listening to *:#{options.port}"
 				return
 
 		#

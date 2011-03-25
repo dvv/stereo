@@ -5,25 +5,28 @@
  * Copyright(c) 2011 Vladimir Dronnikov <dronnikov@gmail.com>
  * MIT Licensed
  *
-*/var framing;
+*/var buf, frame, framing;
 var __slice = Array.prototype.slice, __hasProp = Object.prototype.hasOwnProperty;
+buf = {};
 framing = function(chunk) {
-  var braces, buf, c, i, obj, _len, _results;
-  buf = buf || '';
-  braces = braces || 0;
-  _results = [];
+  var c, i, id, obj, _len;
+  id = this.pid;
+  if (!buf[id]) {
+    buf[id] = '';
+  }
   for (i = 0, _len = chunk.length; i < _len; i++) {
     c = chunk[i];
-    if ('{' === c) {
-      ++braces;
+    if ('\n' === c) {
+      obj = JSON.parse(buf[id]);
+      buf[id] = '';
+      this.emit('message', obj);
+    } else {
+      buf[id] += c;
     }
-    if ('}' === c) {
-      --braces;
-    }
-    buf += c;
-    _results.push(0 === braces ? (obj = JSON.parse(buf), buf = '', this.emit('message', obj)) : void 0);
   }
-  return _results;
+};
+frame = function(obj) {
+  return JSON.stringify(obj) + '\n';
 };
 /*
 
@@ -122,10 +125,7 @@ module.exports = function(server, options) {
     comm.on('connect', function() {
       return comm.setEncoding('utf8');
     });
-    comm.on('data', framing.bind(comm));
-    comm.on('message', function(message) {
-      return process.emit('message', message);
-    });
+    comm.on('data', framing.bind(process));
     comm.once('fd', function(fd) {
       server.listenFD(fd);
       return process.publish('register');
@@ -140,7 +140,7 @@ module.exports = function(server, options) {
         channel: channel,
         data: message
       };
-      return comm.write(JSON.stringify(data));
+      return comm.write(frame(data));
     };
     return server;
   } else {
@@ -190,7 +190,7 @@ module.exports = function(server, options) {
     };
     process.publish = function(channel, message) {
       var data, pid, worker;
-      data = JSON.stringify({
+      data = frame({
         from: null,
         channel: channel,
         data: message
@@ -202,22 +202,9 @@ module.exports = function(server, options) {
     };
     ipc = net.createServer(function(stream) {
       stream.setEncoding('utf8');
-      stream.write('{"foo": "bar"}', 'utf8', socket);
-      stream.on('data', framing.bind(stream));
-      stream.on('message', function(data) {
-        var pid, worker;
-        if (data.channel === 'bcast') {
-          data = JSON.stringify(data);
-          for (pid in workers) {
-            worker = workers[pid];
-            worker.write(data);
-          }
-        } else if (data.channel === 'register') {
-          workers[data.from] = stream;
-          process.log("WORKER " + data.from + " started and listening to *:" + options.port);
-        }
-      });
-      return stream.on('end', function() {
+      stream.write('{"foo": "bar"}\n', 'utf8', socket);
+      stream.on('data', framing.bind(process));
+      stream.on('end', function() {
         var pid, worker;
         for (pid in workers) {
           worker = workers[pid];
@@ -227,6 +214,19 @@ module.exports = function(server, options) {
         }
         if (nworkers > Object.keys(workers).length) {
           spawnWorker();
+        }
+      });
+      return process.on('message', function(data) {
+        var pid, worker;
+        if (data.channel === 'bcast') {
+          data = frame(data);
+          for (pid in workers) {
+            worker = workers[pid];
+            worker.write(data);
+          }
+        } else if (data.channel === 'register') {
+          workers[data.from] = stream;
+          process.log("WORKER " + data.from + " started and listening to *:" + options.port);
         }
       });
     });

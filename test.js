@@ -1,7 +1,7 @@
 var server = require('./')(null, {
   port: 3000,
   repl: true,
-  workers: 4
+  workers: 3
 });
 if (server) { // worker process
   // HTTP(S) server instance for further tuning
