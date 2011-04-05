@@ -16,6 +16,10 @@
 # usage: stream.on('data', framing.bind(stream, id))
 #
 
+#
+# TODO: JSON is way slow. msgpack?
+#
+
 buf = {}
 framing = (chunk) ->
 	id = @pid
@@ -76,6 +80,7 @@ options.ssl.cert
 options.ssl.caCerts
 
 ###
+
 module.exports = (server, options = {}) ->
 
 	net = require 'net'
